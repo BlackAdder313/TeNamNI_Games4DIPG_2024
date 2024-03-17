@@ -1,0 +1,17 @@
+
+TenPillarsBowling/Intermediate/
+
+TenPillarsBowling/.vs/
+
+TenPillarsBowling/Saved/
+
+*.exe
+
+*.exp
+
+*.lib
+
+*.pdb
+
+
+TenPillarsBowling/Backup/
