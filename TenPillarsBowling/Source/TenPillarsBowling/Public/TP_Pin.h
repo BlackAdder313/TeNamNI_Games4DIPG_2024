@@ -16,7 +16,7 @@ class TENPILLARSBOWLING_API ATP_Pin : public AActor
 public:
 	ATP_Pin();
 
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPinDropped, int32);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPinDropped, int32, pinIndex);
 
 	void SetupPin(int32 pinNumber, FVector position, FRotator location);
 

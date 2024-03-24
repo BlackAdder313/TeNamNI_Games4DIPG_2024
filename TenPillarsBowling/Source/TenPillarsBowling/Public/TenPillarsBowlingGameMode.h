@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameMode.h"
 #include "TenPillarsBowlingGameMode.generated.h"
 
 UCLASS(minimalapi)
-class ATenPillarsBowlingGameMode : public AGameModeBase
+class ATenPillarsBowlingGameMode : public AGameMode
 {
 	GENERATED_BODY()
 

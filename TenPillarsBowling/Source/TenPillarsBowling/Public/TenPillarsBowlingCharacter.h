@@ -44,9 +44,6 @@ class ATenPillarsBowlingCharacter : public ACharacter
 public:
 	ATenPillarsBowlingCharacter();
 
-protected:
-	virtual void BeginPlay();
-
 public:
 		
 	/** Look Input Action */
