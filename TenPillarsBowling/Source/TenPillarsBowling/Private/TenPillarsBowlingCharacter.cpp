@@ -29,6 +29,8 @@ void ATenPillarsBowlingCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	FirstPersonCameraComponent->SetRelativeLocation(CameraOffset); // Position the camera
+
+	isShootBallCancelled = false;
 }
 
 //////////////////////////////////////////////////////////////////////////// Input
@@ -82,19 +84,30 @@ void ATenPillarsBowlingCharacter::Rotate(const FInputActionValue& Value)
 	}
 }
 
-void ATenPillarsBowlingCharacter::StartShootBall(const FInputActionValue& Value) {}
+void ATenPillarsBowlingCharacter::StartShootBall(const FInputActionValue& Value)
+{
+	if (Controller != nullptr && !isShootBallCancelled)
+	{
+		CastChecked<ATenPillarsBowlingPlayerController>(Controller)->UpdateBallShootPower();
+	}
+}
 
 void ATenPillarsBowlingCharacter::ExecuteShootBall(const FInputActionValue& Value)
 {
+	isShootBallCancelled = false;
 	if (Controller != nullptr)
 	{
-		CastChecked<ATenPillarsBowlingPlayerController>(Controller)->OnBallShoot(0.f, 0.f);
+		CastChecked<ATenPillarsBowlingPlayerController>(Controller)->OnBallShoot();
 	}
 }
 
 void ATenPillarsBowlingCharacter::CancelShootBall(const FInputActionValue& Value)
 {
-	//UE_LOG(LogTemplateCharacter, Error, TEXT("Cancel shoot Ball"));
+	isShootBallCancelled = true;
+	if (Controller != nullptr)
+	{
+		CastChecked<ATenPillarsBowlingPlayerController>(Controller)->ResetBallShootPower();
+	}
 }
 
 void ATenPillarsBowlingCharacter::MoveBallTargetVertically(const FInputActionValue& Value)

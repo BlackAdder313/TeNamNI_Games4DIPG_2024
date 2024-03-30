@@ -24,8 +24,10 @@ class TENPILLARSBOWLING_API ATenPillarsBowlingPlayerController : public APlayerC
 	GENERATED_BODY()
 
 public:
-	void OnBallShoot(float powerPercentage, float verticalAngle);
+	void OnBallShoot();
 	void OnPlayerRotate(float verticalOffset, float horizontalOffset);
+	void UpdateBallShootPower();
+	void ResetBallShootPower();
 	
 protected:
 
@@ -60,6 +62,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
 	int32 RoundWaitTimeInSeconds = 5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	int ShotPowerChangeStep = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	int MaxShotPower = 80;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bowling|GameDetails")
 	int32 CurrentFrame = 1;
 
@@ -86,6 +94,8 @@ private:
 	void SetupPins();
 	TArray<AActor*> pins;
 	TObjectPtr<AStaticMeshActor> bowlingBall;
+	int shotPower = 0;
+	int shotPowerDirection = 1;
 	
 	// Frame Properties
 	void PrepareFrame();

@@ -68,6 +68,24 @@ void ATenPillarsBowlingPlayerController::SetupBowlingBall()
 	bowlingBall = GetWorld()->SpawnActor<AStaticMeshActor>(BowlingBallClass, FVector() , FRotator::ZeroRotator);
 	bowlingBall->AttachToActor(GetPawn(), FAttachmentTransformRules::KeepWorldTransform);
 	CastChecked<ATP_BowlingBall>(bowlingBall)->SetupBall(FVector(BowlingBallDistanceFromPlayer, 0.f, 50.f /* small height offset*/));
+	ResetBallShootPower();
+}
+
+void ATenPillarsBowlingPlayerController::UpdateBallShootPower()
+{
+	shotPower += (shotPowerDirection * ShotPowerChangeStep);
+	if (shotPower > 100 || shotPower < 0)
+	{
+		shotPowerDirection *= -1;
+	}
+
+	shotPower = FMath::Clamp(shotPower, 0, 100);
+}
+
+void ATenPillarsBowlingPlayerController::ResetBallShootPower()
+{
+	shotPower = 0;
+	shotPowerDirection = 1;
 }
 
 void ATenPillarsBowlingPlayerController::SetupPins()
@@ -218,15 +236,22 @@ void ATenPillarsBowlingPlayerController::OnPlayerRotate(float verticalOffset, fl
 	castBowlingBall->SetActorRotation(rotation + FRotator(verticalOffset, horizontalOffset, 0.f));
 }
 
-void ATenPillarsBowlingPlayerController::OnBallShoot(float powerPercentage, float verticalAngle)
+void ATenPillarsBowlingPlayerController::OnBallShoot()
 {
+	if (!shotPower)
+	{
+		return;
+	}
+
 	for (auto pin : pins)
 	{
 		CastChecked<ATP_Pin>(pin)->OnShootExecuted();
 	}
 	
 	CastChecked<ATP_BowlingBall>(bowlingBall)->OnShootExecuted();
-	bowlingBall->GetStaticMeshComponent()->AddImpulse(4000.f * bowlingBall->GetActorForwardVector(), NAME_None, true);
+
+	float totalBallPower = MaxShotPower * shotPower;
+	bowlingBall->GetStaticMeshComponent()->AddImpulse(totalBallPower * bowlingBall->GetActorForwardVector(), NAME_None, true);
 	
 	m_isTimerRunning = true;
 }
