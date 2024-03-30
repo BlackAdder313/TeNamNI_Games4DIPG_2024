@@ -103,4 +103,6 @@ private:
 
 	float m_roundTimer = 0.f;
 	bool m_isTimerRunning = false;
+
+	TOptional<int> remainingExtraShots;
 };

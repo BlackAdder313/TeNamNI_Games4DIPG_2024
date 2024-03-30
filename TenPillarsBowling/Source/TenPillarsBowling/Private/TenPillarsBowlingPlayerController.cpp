@@ -46,7 +46,9 @@ void ATenPillarsBowlingPlayerController::Tick(float deltaSeconds)
 
 void ATenPillarsBowlingPlayerController::PrepareGame()
 {
-	CurrentFrame = 0;
+	CurrentFrame = -1; // meh
+	
+	remainingExtraShots.Reset();
 
 	scoringWaitingList.Empty();
 	pointsPerFrame.Init(0, NumberOfRounds);
@@ -107,9 +109,39 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 {
 	for (int index = 0; index < pointsPerFrame.Num(); index++)
 	{
-		UE_LOG(LogPlayerController, Error, TEXT("Frame: %d -- Points: %d"), index + 1, pointsPerFrame[index]);
+		UE_LOG(LogPlayerController, Error, TEXT("Frame: %d -- Points: %d"), index, pointsPerFrame[index]);
+	}
+
+	if (CurrentFrame == NumberOfRounds - 1)
+	{
+		if (numberOfDroppedPinsOnFrame < 10 || remainingExtraShots.IsSet() && !remainingExtraShots.GetValue())
+		{
+			// Finish level
+			UE_LOG(LogPlayerController, Error, TEXT("Game over"));
+
+			int pinsAmount = 0;
+			for (int index = 0; index < pointsPerFrame.Num(); index++)
+			{
+				pinsAmount += pointsPerFrame[index];
+				UE_LOG(LogPlayerController, Error, TEXT("Frame: %d -- Total: %d"), index, pinsAmount);
+			}
+
+			return;
+		}
+
+		if (remainingExtraShots.IsSet())
+		{
+			remainingExtraShots = remainingExtraShots.GetValue() - 1;
+		}
+		else
+		{
+			// Get 2 extra attempts if last shot of normal rounds was a strike,
+			// else 1 if it was a spare
+			remainingExtraShots = FrameStage == 1 ? 2 : 1;
+		}
 	}
 	
+	CurrentFrame = FMath::Min(CurrentFrame + 1, NumberOfRounds - 1);
 	numberOfDroppedPinsOnFrame = 0;
 	FrameState = EFrameState::Start;
 	FrameStage = 1;
@@ -140,21 +172,25 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 	bool isStrike = isSpare && FrameStage == 1;
 	if (FrameStage == 2 || isStrike)
 	{
-		pointsPerFrame[CurrentFrame] = numberOfDroppedPinsOnFrame;
-		if (isStrike)
+		pointsPerFrame[CurrentFrame] += numberOfDroppedPinsOnFrame;
+
+		if(CurrentFrame < NumberOfRounds - 1)
 		{
-			scoringWaitingList.Push({ CurrentFrame , 2 });
-		}
-		else if (isSpare)
-		{
-			scoringWaitingList.Push({ CurrentFrame , 1 });
+			if (isStrike)
+			{
+				scoringWaitingList.Push({ CurrentFrame , 2 });
+			}
+			else if (isSpare)
+			{
+				scoringWaitingList.Push({ CurrentFrame , 1 });
+			}
 		}
 
-		CurrentFrame++;
 		PrepareFrame();
 		return;
 	}
 
+	numberOfDroppedPinsOnFrame = 0; // adapt to remove for tests?
 	FrameStage++;
 	for (auto pin : pins)
 	{
