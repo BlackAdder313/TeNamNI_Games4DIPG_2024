@@ -33,41 +33,52 @@ class ATenPillarsBowlingCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
 
-	/** Jump Input Action */
+	/** Shoot Ball Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
+	UInputAction* ShootBallAction;
 
-	/** Move Input Action */
+	/** Shoot Ball Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* CancelShootBallAction;
+
+	/** Move Horizontally Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* MoveAction;
+	UInputAction* MoveHorizontallyAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* MoveBallTargetVerticallyAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RotateAction;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	float HorizontalMovementRange = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	float VerticalTargetingRange = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	float RotationRange = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	FVector CameraOffset = FVector(-700.f, 0.f, 200.f);
 	
 public:
 	ATenPillarsBowlingCharacter();
 
-public:
-		
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	class UInputAction* LookAction;
-
-	/** Bool for AnimBP to switch to another animation set */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Weapon)
-	bool bHasRifle;
-
-	/** Setter to set the bool */
-	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void SetHasRifle(bool bNewHasRifle);
-
-	/** Getter for the bool */
-	UFUNCTION(BlueprintCallable, Category = Weapon)
-	bool GetHasRifle();
+	virtual void BeginPlay() override;
 
 protected:
-	/** Called for movement input */
-	void Move(const FInputActionValue& Value);
+	void StartShootBall(const FInputActionValue& Value);
+	void ExecuteShootBall(const FInputActionValue& Value);
+	void CancelShootBall(const FInputActionValue& Value);
 
-	/** Called for looking input */
-	void Look(const FInputActionValue& Value);
+	/** Called for movement input */
+	void MoveHorizontally(const FInputActionValue& Value);
+	void Rotate(const FInputActionValue& Value);
+
+	void MoveBallTargetVertically(const FInputActionValue& Value);
 
 protected:
 	// APawn interface

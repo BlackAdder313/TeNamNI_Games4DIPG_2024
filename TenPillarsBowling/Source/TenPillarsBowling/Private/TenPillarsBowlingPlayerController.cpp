@@ -2,9 +2,11 @@
 
 
 #include "TenPillarsBowlingPlayerController.h"
+#include "Engine/StaticMeshActor.h"
 #include "EnhancedInputSubsystems.h"
 
 #include "TP_Pin.h"
+#include "TP_BowlingBall.h"
 
 static const TArray<TArray<float>> s_PinsLayout =
 {
@@ -28,15 +30,42 @@ void ATenPillarsBowlingPlayerController::BeginPlay()
 	PrepareGame();
 }
 
+void ATenPillarsBowlingPlayerController::Tick(float deltaSeconds)
+{
+	if(!m_isTimerRunning)
+	{
+		return;
+	}
+
+	m_roundTimer += deltaSeconds;
+	if (m_roundTimer >= 10.f)
+	{
+		EvaluateFrame();
+	}
+}
+
 void ATenPillarsBowlingPlayerController::PrepareGame()
 {
-	CurrentFrame = 1;
+	CurrentFrame = 0;
 
-	scoringWaitingList.Init(0, NumberOfRounds);
+	scoringWaitingList.Empty();
 	pointsPerFrame.Init(0, NumberOfRounds);
 
-	SetupPins();
 	PrepareFrame();
+
+	m_roundTimer = 0.f;
+}
+
+void ATenPillarsBowlingPlayerController::SetupBowlingBall()
+{
+	if (bowlingBall)
+	{
+		bowlingBall->Destroy();
+	}
+
+	bowlingBall = GetWorld()->SpawnActor<AStaticMeshActor>(BowlingBallClass, FVector() , FRotator::ZeroRotator);
+	bowlingBall->AttachToActor(GetPawn(), FAttachmentTransformRules::KeepWorldTransform);
+	CastChecked<ATP_BowlingBall>(bowlingBall)->SetupBall(FVector(BowlingBallDistanceFromPlayer, 0.f, 50.f /* small height offset*/));
 }
 
 void ATenPillarsBowlingPlayerController::SetupPins()
@@ -45,6 +74,13 @@ void ATenPillarsBowlingPlayerController::SetupPins()
 	{
 		return;
 	}
+	
+	for (auto pin : pins)
+	{
+		pin->Destroy();
+	}
+	pins.Empty();
+	
 	int pinIndex = 1;
 	for (int8 index = 0; index < s_PinsLayout.Num(); index++)
 	{
@@ -57,7 +93,7 @@ void ATenPillarsBowlingPlayerController::SetupPins()
 			auto pinActor = GetWorld()->SpawnActor<AActor>(PinClass, position, FRotator());
 			if (ATP_Pin* pin = Cast<ATP_Pin>(pinActor))
 			{
-				pin->SetupPin(pinIndex, position, FRotator());
+				pin->SetupPin(pinIndex, position, FRotator::ZeroRotator);
 				pinIndex++;
 
 				pin->OnPinDropped.AddUniqueDynamic(this, &ATenPillarsBowlingPlayerController::OnPinDropped);
@@ -69,36 +105,92 @@ void ATenPillarsBowlingPlayerController::SetupPins()
 
 void ATenPillarsBowlingPlayerController::PrepareFrame()
 {
+	for (int index = 0; index < pointsPerFrame.Num(); index++)
+	{
+		UE_LOG(LogPlayerController, Error, TEXT("Frame: %d -- Points: %d"), index + 1, pointsPerFrame[index]);
+	}
+	
 	numberOfDroppedPinsOnFrame = 0;
 	FrameState = EFrameState::Start;
 	FrameStage = 1;
+
+	SetupBowlingBall();
+	SetupPins();
+
+	m_roundTimer = 0.f;
 }
 
 void ATenPillarsBowlingPlayerController::EvaluateFrame()
 {
-	bool isStrike = numberOfDroppedPinsOnFrame == 10 && FrameStage == 1;
+	m_isTimerRunning = false;
+
+	for (int32 index = scoringWaitingList.Num() - 1; index >= 0; index--)
+	{
+		auto& waitingFrame = scoringWaitingList[index];
+		pointsPerFrame[waitingFrame.X] += numberOfDroppedPinsOnFrame;
+		
+		waitingFrame.Y--;		
+		if (!waitingFrame.Y)
+		{
+			scoringWaitingList.RemoveAt(index);
+		}
+	}
+
+	bool isSpare = numberOfDroppedPinsOnFrame == 10;
+	bool isStrike = isSpare && FrameStage == 1;
 	if (FrameStage == 2 || isStrike)
 	{
 		pointsPerFrame[CurrentFrame] = numberOfDroppedPinsOnFrame;
 		if (isStrike)
 		{
-			scoringWaitingList[CurrentFrame] = 2;
+			scoringWaitingList.Push({ CurrentFrame , 2 });
 		}
-		else if (numberOfDroppedPinsOnFrame == 10) // Spare
+		else if (isSpare)
 		{
-			scoringWaitingList[CurrentFrame] = 1;
+			scoringWaitingList.Push({ CurrentFrame , 1 });
 		}
-		// Calculate points
-		// If it's spare of strike, add it to 
+
+		CurrentFrame++;
+		PrepareFrame();
+		return;
 	}
+
+	FrameStage++;
+	for (auto pin : pins)
+	{
+		CastChecked<ATP_Pin>(pin)->PrepareForNextFrameStage();
+	}
+
+	m_roundTimer = 0.f;
+	SetupBowlingBall();
 }
 
 void ATenPillarsBowlingPlayerController::OnPinDropped(int32 pinIndex)
 {
+	UE_LOG(LogPlayerController, Error, TEXT("Pin dropped with index: %d"), pinIndex);
 	numberOfDroppedPinsOnFrame++;
 	if (numberOfDroppedPinsOnFrame == 10)
 	{
-		// TODO: Pause timer
 		EvaluateFrame();
 	}
+}
+
+void ATenPillarsBowlingPlayerController::OnPlayerRotate(float verticalOffset, float horizontalOffset)
+{
+	auto castBowlingBall = CastChecked<ATP_BowlingBall>(bowlingBall);
+	FRotator rotation = castBowlingBall->GetActorRotation();
+	castBowlingBall->SetActorRotation(rotation + FRotator(verticalOffset, horizontalOffset, 0.f));
+}
+
+void ATenPillarsBowlingPlayerController::OnBallShoot(float powerPercentage, float verticalAngle)
+{
+	for (auto pin : pins)
+	{
+		CastChecked<ATP_Pin>(pin)->OnShootExecuted();
+	}
+	
+	CastChecked<ATP_BowlingBall>(bowlingBall)->OnShootExecuted();
+	bowlingBall->GetStaticMeshComponent()->AddImpulse(4000.f * bowlingBall->GetActorForwardVector(), NAME_None, true);
+	
+	m_isTimerRunning = true;
 }

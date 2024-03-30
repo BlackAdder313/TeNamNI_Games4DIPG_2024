@@ -7,6 +7,7 @@
 #include "TenPillarsBowlingPlayerController.generated.h"
 
 class UInputMappingContext;
+class AStaticMeshActor;
 
 UENUM()
 enum class EFrameState : uint8
@@ -21,6 +22,10 @@ UCLASS()
 class TENPILLARSBOWLING_API ATenPillarsBowlingPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
+	void OnBallShoot(float powerPercentage, float verticalAngle);
+	void OnPlayerRotate(float verticalOffset, float horizontalOffset);
 	
 protected:
 
@@ -30,6 +35,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	TSubclassOf<AActor> PinClass;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	TSubclassOf<AStaticMeshActor> BowlingBallClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
 	bool EnablePinSpawning = false;
@@ -47,6 +55,9 @@ protected:
 	FVector2f FirstPinCoordinates = { 4520.f, 1690.f };
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
+	float BowlingBallDistanceFromPlayer = 400.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
 	int32 RoundWaitTimeInSeconds = 5;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bowling|GameDetails")
@@ -62,6 +73,7 @@ protected:
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float deltaSeconds) override;
 
 	UFUNCTION()
 	void OnPinDropped(int32 pinIndex);
@@ -69,8 +81,11 @@ protected:
 private:
 	void PrepareGame();
 
+	void SetupBowlingBall();
+
 	void SetupPins();
 	TArray<AActor*> pins;
+	TObjectPtr<AStaticMeshActor> bowlingBall;
 	
 	// Frame Properties
 	void PrepareFrame();
@@ -82,7 +97,10 @@ private:
 	// Length of array: RoundsNumber
 	// Index of element: Round number
 	// Value of element: Number of rounds to retroactively add their scores to this round
-	TArray<int> scoringWaitingList;
+	TArray<FInt32Vector2> scoringWaitingList;
 
 	TArray<int> pointsPerFrame;
+
+	float m_roundTimer = 0.f;
+	bool m_isTimerRunning = false;
 };
