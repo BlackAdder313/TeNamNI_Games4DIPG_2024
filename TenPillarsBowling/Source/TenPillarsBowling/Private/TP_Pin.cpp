@@ -50,8 +50,8 @@ void ATP_Pin::PrepareForNextFrameStage()
 		return;
 	}
 
-	GetStaticMeshComponent()->SetSimulatePhysics(false);
 	GetStaticMeshComponent()->SetAllPhysicsLinearVelocity(FVector::ZeroVector);
 	GetStaticMeshComponent()->SetAllPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	GetStaticMeshComponent()->SetSimulatePhysics(false);
 	SetActorLocationAndRotation(PinPosition, PinRotation);
 }
