@@ -5,6 +5,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EnhancedInputSubsystems.h"
 
+#include "TenPillarsBowlingUI.h"
 #include "TP_Pin.h"
 #include "TP_BowlingBall.h"
 
@@ -27,6 +28,13 @@ void ATenPillarsBowlingPlayerController::BeginPlay()
 		Subsystem->AddMappingContext(InputMappingContext, 0);
 	}
 
+	// spawn the UI widget and add it to the viewport
+	PlayerUI = CreateWidget<UTenPillarsBowlingUI>(this, PlayerUIClass);
+
+	check(PlayerUI);
+
+	PlayerUI->AddToViewport();
+
 	PrepareGame();
 }
 
@@ -47,6 +55,7 @@ void ATenPillarsBowlingPlayerController::Tick(float deltaSeconds)
 void ATenPillarsBowlingPlayerController::PrepareGame()
 {
 	CurrentFrame = -1; // meh
+	numberOfDroppedPinsOnShot = 0;
 	
 	remainingExtraShots.Reset();
 
@@ -73,6 +82,11 @@ void ATenPillarsBowlingPlayerController::SetupBowlingBall()
 
 void ATenPillarsBowlingPlayerController::UpdateBallShootPower()
 {
+	if (FrameState != EFrameState::Start)
+	{
+		return;
+	}
+
 	shotPower += (shotPowerDirection * ShotPowerChangeStep);
 	if (shotPower > 100 || shotPower < 0)
 	{
@@ -80,6 +94,11 @@ void ATenPillarsBowlingPlayerController::UpdateBallShootPower()
 	}
 
 	shotPower = FMath::Clamp(shotPower, 0, 100);
+
+	if (PlayerUI)
+	{
+		PlayerUI->UpdateForce(shotPower);
+	}
 }
 
 void ATenPillarsBowlingPlayerController::ResetBallShootPower()
@@ -173,6 +192,10 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 void ATenPillarsBowlingPlayerController::EvaluateFrame()
 {
 	m_isTimerRunning = false;
+	FrameState = EFrameState::ScoreCalculation;
+	
+	shotsPerFrame.FindOrAdd(CurrentFrame + 1).Add(numberOfDroppedPinsOnShot);
+	numberOfDroppedPinsOnShot = 0;
 
 	for (int32 index = scoringWaitingList.Num() - 1; index >= 0; index--)
 	{
@@ -204,6 +227,11 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 			}
 		}
 
+		if (PlayerUI)
+		{
+			PlayerUI->UpdateScore(CurrentFrame + 1, shotsPerFrame[CurrentFrame + 1]);
+		}
+
 		PrepareFrame();
 		return;
 	}
@@ -216,13 +244,20 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 	}
 
 	m_roundTimer = 0.f;
+	FrameState = EFrameState::Start;
 	SetupBowlingBall();
+	
+	if (PlayerUI)
+	{
+		PlayerUI->UpdateScore(CurrentFrame + 1, shotsPerFrame[CurrentFrame + 1]);
+	}
 }
 
 void ATenPillarsBowlingPlayerController::OnPinDropped(int32 pinIndex)
 {
 	UE_LOG(LogPlayerController, Error, TEXT("Pin dropped with index: %d"), pinIndex);
 	numberOfDroppedPinsOnFrame++;
+	numberOfDroppedPinsOnShot++;
 	if (numberOfDroppedPinsOnFrame == 10)
 	{
 		EvaluateFrame();
@@ -238,10 +273,12 @@ void ATenPillarsBowlingPlayerController::OnPlayerRotate(float verticalOffset, fl
 
 void ATenPillarsBowlingPlayerController::OnBallShoot()
 {
-	if (!shotPower)
+	if (!shotPower || FrameState != EFrameState::Start)
 	{
 		return;
 	}
+
+	FrameState = EFrameState::BallRolling;
 
 	for (auto pin : pins)
 	{

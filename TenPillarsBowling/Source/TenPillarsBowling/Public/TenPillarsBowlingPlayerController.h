@@ -8,6 +8,7 @@
 
 class UInputMappingContext;
 class AStaticMeshActor;
+class UTenPillarsBowlingUI;
 
 UENUM()
 enum class EFrameState : uint8
@@ -41,6 +42,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	TSubclassOf<AStaticMeshActor> BowlingBallClass;
 
+	/** Type of the UI to spawn */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI)
+	TSubclassOf<UTenPillarsBowlingUI> PlayerUIClass;
+
+	/** Pointer to the UI widget */
+	TObjectPtr<UTenPillarsBowlingUI> PlayerUI;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
 	bool EnablePinSpawning = false;
 
@@ -63,7 +71,7 @@ protected:
 	int32 RoundWaitTimeInSeconds = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
-	int ShotPowerChangeStep = 3;
+	int ShotPowerChangeStep = 2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bowling|Constants")
 	int MaxShotPower = 80;
@@ -101,6 +109,7 @@ private:
 	void PrepareFrame();
 	void EvaluateFrame();
 	int32 numberOfDroppedPinsOnFrame = 0;
+	int32 numberOfDroppedPinsOnShot = 0;
 	
 	// Scoring
 	
@@ -109,10 +118,11 @@ private:
 	// Value of element: Number of rounds to retroactively add their scores to this round
 	TArray<FInt32Vector2> scoringWaitingList;
 
-	TArray<int> pointsPerFrame;
+	TArray<int32> pointsPerFrame;
+	TMap<int32, TArray<int32>> shotsPerFrame;
 
 	float m_roundTimer = 0.f;
 	bool m_isTimerRunning = false;
 
-	TOptional<int> remainingExtraShots;
+	TOptional<int32> remainingExtraShots;
 };
