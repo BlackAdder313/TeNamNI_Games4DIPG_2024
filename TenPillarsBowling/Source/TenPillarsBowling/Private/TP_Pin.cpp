@@ -44,7 +44,7 @@ void ATP_Pin::OnShootExecuted()
 
 void ATP_Pin::PrepareForNextFrameStage()
 {
-	if (beDestroyed || IsPendingKillPending())
+	if (beDestroyed)
 	{
 		SetActorHiddenInGame(true);		
 		return;

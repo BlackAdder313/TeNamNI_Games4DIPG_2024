@@ -85,6 +85,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bowling|GameDetails|Frame")
 	EFrameState FrameState = EFrameState::Start;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLevelFinished(int32 score);
+
 	// Begin Actor interface
 protected:
 
@@ -108,7 +111,6 @@ private:
 	// Frame Properties
 	void PrepareFrame();
 	void EvaluateFrame();
-	int32 numberOfDroppedPinsOnFrame = 0;
 	int32 numberOfDroppedPinsOnShot = 0;
 	
 	// Scoring

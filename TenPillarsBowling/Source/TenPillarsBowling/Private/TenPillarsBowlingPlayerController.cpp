@@ -40,7 +40,7 @@ void ATenPillarsBowlingPlayerController::BeginPlay()
 
 void ATenPillarsBowlingPlayerController::Tick(float deltaSeconds)
 {
-	if(!m_isTimerRunning)
+	if(!m_isTimerRunning || IsPaused())
 	{
 		return;
 	}
@@ -151,7 +151,7 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 
 	if (CurrentFrame == NumberOfRounds - 1)
 	{
-		if (numberOfDroppedPinsOnFrame < 10 || remainingExtraShots.IsSet() && !remainingExtraShots.GetValue())
+		if (numberOfDroppedPinsOnShot < 10 || remainingExtraShots.IsSet() && !remainingExtraShots.GetValue())
 		{
 			// Finish level
 			UE_LOG(LogPlayerController, Error, TEXT("Game over"));
@@ -162,6 +162,8 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 				pinsAmount += pointsPerFrame[index];
 				UE_LOG(LogPlayerController, Error, TEXT("Frame: %d -- Total: %d"), index, pinsAmount);
 			}
+
+			OnLevelFinished(pinsAmount);
 
 			return;
 		}
@@ -179,7 +181,7 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 	}
 	
 	CurrentFrame = FMath::Min(CurrentFrame + 1, NumberOfRounds - 1);
-	numberOfDroppedPinsOnFrame = 0;
+	numberOfDroppedPinsOnShot = 0;
 	FrameState = EFrameState::Start;
 	FrameStage = 1;
 
@@ -200,12 +202,12 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 	FrameState = EFrameState::ScoreCalculation;
 	
 	shotsPerFrame.FindOrAdd(CurrentFrame + 1).Add(numberOfDroppedPinsOnShot);
-	numberOfDroppedPinsOnShot = 0;
+	pointsPerFrame[CurrentFrame] += numberOfDroppedPinsOnShot;
 
 	for (int32 index = scoringWaitingList.Num() - 1; index >= 0; index--)
 	{
 		auto& waitingFrame = scoringWaitingList[index];
-		pointsPerFrame[waitingFrame.X] += numberOfDroppedPinsOnFrame;
+		pointsPerFrame[waitingFrame.X] += numberOfDroppedPinsOnShot;
 		
 		waitingFrame.Y--;		
 		if (!waitingFrame.Y)
@@ -214,12 +216,10 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 		}
 	}
 
-	bool isSpare = numberOfDroppedPinsOnFrame == 10;
+	bool isSpare = numberOfDroppedPinsOnShot == 10;
 	bool isStrike = isSpare && FrameStage == 1;
 	if (FrameStage == 2 || isStrike)
 	{
-		pointsPerFrame[CurrentFrame] += numberOfDroppedPinsOnFrame;
-
 		if(CurrentFrame < NumberOfRounds - 1)
 		{
 			if (isStrike)
@@ -241,7 +241,7 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 		return;
 	}
 
-	numberOfDroppedPinsOnFrame = 0; // adapt to remove for tests?
+	numberOfDroppedPinsOnShot = 0; // adapt to remove for tests?
 	FrameStage++;
 	for (auto pin : pins)
 	{
@@ -261,9 +261,8 @@ void ATenPillarsBowlingPlayerController::EvaluateFrame()
 void ATenPillarsBowlingPlayerController::OnPinDropped(int32 pinIndex)
 {
 	UE_LOG(LogPlayerController, Error, TEXT("Pin dropped with index: %d"), pinIndex);
-	numberOfDroppedPinsOnFrame++;
 	numberOfDroppedPinsOnShot++;
-	if (numberOfDroppedPinsOnFrame == 10)
+	if (numberOfDroppedPinsOnShot == 10)
 	{
 		EvaluateFrame();
 	}
