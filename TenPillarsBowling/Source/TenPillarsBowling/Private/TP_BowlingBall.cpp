@@ -16,9 +16,11 @@ void ATP_BowlingBall::SetupBall(const FVector& initialPosition)
 {
 	GetStaticMeshComponent()->SetSimulatePhysics(false);
 	SetActorRelativeLocation(initialPosition);
+	BP_OnBallSetup();
 }
 
 void ATP_BowlingBall::OnShootExecuted()
 {
 	GetStaticMeshComponent()->SetSimulatePhysics(true);
+	BP_OnShootExecuted();
 }

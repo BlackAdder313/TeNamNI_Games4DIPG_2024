@@ -19,6 +19,15 @@ public:
 	void SetupBall(const FVector& initialPosition);
 	void OnShootExecuted();
 
+protected:
+	/** Implemented in Blueprint to display the new speed */
+	UFUNCTION(BlueprintImplementableEvent, Category = Vehicle)
+	void BP_OnBallSetup();
+
+	/** Implemented in Blueprint to display the new speed */
+	UFUNCTION(BlueprintImplementableEvent, Category = Vehicle)
+	void BP_OnShootExecuted();
+
 private:
 	FVector m_initialPosition;
 };

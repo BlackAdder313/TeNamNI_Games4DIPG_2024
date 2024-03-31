@@ -187,6 +187,11 @@ void ATenPillarsBowlingPlayerController::PrepareFrame()
 	SetupPins();
 
 	m_roundTimer = 0.f;
+
+	if (PlayerUI)
+	{
+		PlayerUI->ResetForce();
+	}
 }
 
 void ATenPillarsBowlingPlayerController::EvaluateFrame()

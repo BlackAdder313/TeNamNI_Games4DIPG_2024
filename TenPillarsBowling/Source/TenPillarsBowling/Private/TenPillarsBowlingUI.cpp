@@ -14,3 +14,9 @@ void UTenPillarsBowlingUI::UpdateForce(int32 force)
 	// call the Blueprint handler
 	OnForceUpdated(force);
 }
+
+void UTenPillarsBowlingUI::ResetForce()
+{
+	// call the Blueprint handler
+	OnForceReset();
+}

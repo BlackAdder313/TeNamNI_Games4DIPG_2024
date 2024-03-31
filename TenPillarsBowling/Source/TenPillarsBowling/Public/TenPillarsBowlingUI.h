@@ -25,6 +25,9 @@ public:
 	/** Called to update the planted wheat display */
 	void UpdateForce(int32 force);
 
+	/** Called to update the planted wheat display */
+	void ResetForce();
+
 protected:
 
 	/** Implemented in Blueprint to display the new speed */
@@ -34,4 +37,8 @@ protected:
 	/** Implemented in Blueprint to display the new speed */
 	UFUNCTION(BlueprintImplementableEvent, Category = Vehicle)
 	void OnForceUpdated(int32 force);
+
+	/** Implemented in Blueprint to display the new speed */
+	UFUNCTION(BlueprintImplementableEvent, Category = Vehicle)
+	void OnForceReset();
 };
